@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="./scripts/libraries.js"></script>
+    <link rel="stylesheet" href="./styles/styles.css" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Aurora OS</title>
+  </head>
+  <body>
+    <load>
+      <div class="loader"></div>
+    </load>
+    <main></main>
+    <nav>
+      <div class="group left">
+        <div
+          class="icon"
+          style="--url: url(../media/logo.svg)"
+          onclick="toggleMenu('start')"></div>
+      </div>
+      <div class="group right">
+        <div class="widget text" id="widget_time"></div>
+        <div
+          class="icon"
+          style="--url: url(../media/view.svg)"
+          onclick="toggleMenu('view')"></div>
+        <div
+          class="icon"
+          style="--url: url(../media/notif.svg)"
+          onclick="toggleMenu('notifs')"></div>
+      </div>
+    </nav>
+    <menu class="start"></menu>
+    <menu class="notifs"></menu>
+  </body>
+  <script src="./scripts/script.js"></script>
+</html>

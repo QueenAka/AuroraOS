@@ -1,0 +1,410 @@
+* {
+  user-select: none;
+  outline: none;
+  transition: all 0.1s ease-in-out;
+}
+
+:root {
+  --main: #1e2124;
+  --secondary: #26292e;
+  --text: #f1f1f1;
+  --light-text: #aaa;
+  --background: #131517;
+  --highlights: #d80448;
+  --warn: #e6d581;
+  --success: #5bbd5b;
+  --danger: #e60b42;
+  --darker: rgba(0, 0, 0, 0.2);
+  --lighter: rgba(255, 255, 255, 0.1);
+  --icon-color: #f1f1f1;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: var(--main);
+}
+
+nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50px;
+  background: var(--background);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 2000;
+}
+
+nav .group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+nav .group .icon {
+  width: 50px;
+  height: 50px;
+  mask-image: var(--url);
+  mask-size: 35px;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  cursor: pointer;
+  background-color: var(--icon-color);
+}
+
+nav .icon:hover {
+  mask-size: 40px;
+}
+
+nav .icon:active {
+  mask-size: 30px;
+}
+
+.start {
+  position: fixed;
+  bottom: -400px;
+  left: 0;
+  width: 300px;
+  height: 400px;
+  background: var(--background);
+  border-radius: 0 10px 0 0;
+  margin: 0;
+  padding: 0;
+  z-index: 1000;
+}
+
+.start.open {
+  bottom: 50px;
+}
+
+.notifs {
+  position: fixed;
+  bottom: -400px;
+  right: 0;
+  width: 300px;
+  height: 400px;
+  background: var(--background);
+  border-radius: 10px 0 0 0;
+  margin: 0;
+  padding: 0;
+  z-index: 1000;
+}
+
+.notifs.open {
+  bottom: 50px;
+}
+
+.widget.text {
+  height: 50px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: bolder;
+  padding: 0 10px;
+  text-align: center;
+  line-height: 50px;
+}
+
+.widget.text:hover {
+  transform: scale(1.1);
+}
+
+.widget.text:active {
+  transform: scale(0.9);
+}
+
+main {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 50px);
+  background: var(--main);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+main .item {
+  width: 60px;
+  min-height: 12px;
+  max-height: 36px;
+  padding: 5px;
+  padding-top: 60px;
+  position: relative;
+}
+
+main .item .icon {
+  background-image: var(--url);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  top: 5px;
+  left: 10px;
+}
+
+main .item .text {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: bolder;
+  text-align: center;
+  line-height: 12px;
+  width: 100%;
+  word-wrap: break-word;
+}
+
+main .item:hover {
+  background-color: var(--lighter);
+}
+
+main .item:hover .icon,
+main .item:hover .text {
+  transform: scale(1.05);
+}
+
+main .item:active .icon,
+main .item:active .text {
+  transform: scale(0.95);
+}
+
+.app {
+  width: 510px;
+  height: 300px;
+  background: var(--background);
+  border-radius: 10px;
+  position: fixed;
+  z-index: 999;
+  overflow: hidden;
+  padding-top: 30px;
+  border: 4px solid var(--background);
+  cursor: grab;
+  animation: fade-in 0.1s ease-in-out forwards;
+  box-sizing: border-box;
+}
+
+.app iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: white;
+}
+
+.app .name {
+  color: var(--text);
+  font-size: 18px;
+  text-align: center;
+  line-height: 30px;
+  position: absolute;
+  top: 0;
+  left: 5px;
+}
+
+.app .buttons {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 90px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.app .buttons .button {
+  width: 30px;
+  height: 30px;
+  background: var(--icon-color);
+  mask-image: var(--url);
+  mask-size: 15px;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  cursor: pointer;
+}
+
+.app .buttons .button:hover {
+  mask-size: 20px;
+}
+
+.app .buttons .button:active {
+  mask-size: 12px;
+}
+
+.app.min {
+  animation: fade-out 0.1s ease-in-out forwards;
+  pointer-events: none;
+}
+
+.app.max {
+  width: 100% !important;
+  height: calc(100% - 50px) !important;
+  top: 0 !important;
+  left: 0 !important;
+  border-radius: 0;
+  border: none;
+  transform: none !important;
+}
+
+.notif {
+  width: 225px;
+  height: 40px;
+  padding: 10px;
+  background: var(--background);
+  border-radius: 10px;
+  position: fixed;
+  bottom: 55px;
+  right: 5px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: bolder;
+  padding-left: 55px;
+  animation: fade-in-up 0.2s ease-in-out forwards;
+  z-index: 1002;
+}
+
+.notif.fade {
+  animation: fade-out-down 0.2s ease-in-out forwards;
+}
+
+.notif .icon {
+  mask-image: var(--url);
+  mask-size: 40px;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: var(--icon-color);
+  width: 40px;
+  height: 40px;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+.notif .title {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: bolder;
+  width: calc(100% - 65px);
+  position: absolute;
+  top: 10px;
+  left: 55px;
+  line-height: 15px;
+}
+
+.notif .desc {
+  color: var(--light-text);
+  font-size: 14px;
+  font-weight: normal;
+  width: calc(100% - 65px);
+  position: absolute;
+  top: 25px;
+  left: 55px;
+  line-height: 14px;
+}
+
+@keyframes fade-in-up {
+  0% {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out-down {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.open-app {
+  width: 50px;
+  height: 50px;
+  background-image: var(--url);
+  background-size: 40px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.open-app:hover {
+  background-size: 45px;
+}
+
+.open-app:active {
+  background-size: 35px;
+}
+
+load {
+  width: 100%;
+  height: 100%;
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 0;
+  left: 0;
+  position: fixed;
+  z-index: 5000;
+}
+
+load .loader {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  mask-image: url(./media/logo.svg);
+  mask-position: center;
+  mask-size: 100px;
+  mask-repeat: no-repeat;
+  background: white;
+  overflow: hidden;
+  animation: spin-mask 1s ease-in-out infinite;
+}
+
+@keyframes spin-mask {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  50% {
+    transform: rotate(360deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}

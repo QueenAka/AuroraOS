@@ -1,0 +1,80 @@
+{
+  "fs": {
+    "/desktop": {
+      "type": "dir",
+      "meta": {
+        "ts": "05/14/2025@00:00",
+        "attr": ["!del", "!name", "!move"]
+      }
+    },
+    "/downloads": {
+      "type": "dir",
+      "meta": {
+        "ts": "05/14/2025@00:00"
+      }
+    },
+    "/documents": {
+      "type": "dir",
+      "meta": {
+        "ts": "05/14/2025@00:00"
+      }
+    },
+    "/uploads": {
+      "type": "dir",
+      "meta": {
+        "ts": "05/14/2025@00:00"
+      }
+    },
+    "/apps": {
+      "type": "dir",
+      "meta": {
+        "ts": "05/14/2025@00:00"
+      }
+    },
+    "/desktop/uploadFile": {
+      "type": "app",
+      "cont": "JS:system.devUploadApp()",
+      "meta": {
+        "ts": "05/14/2025@00:00"
+      }
+    },
+    "/desktop/createApp": {
+      "type": "app",
+      "cont": "JS:system.devCreateApp()",
+      "meta": {
+        "ts": "05/14/2025@00:00"
+      }
+    },
+    "/desktop/deleteApp": {
+      "type": "app",
+      "cont": "JS:system.devDeleteApp()",
+      "meta": {
+        "ts": "05/14/2025@00:00"
+      }
+    },
+    "/desktop/notifTest": {
+      "type": "app",
+      "cont": "JS:system.devNotifCreate()",
+      "meta": {
+        "ts": "05/14/2025@00:00"
+      }
+    },
+    "/desktop/factoryReset": {
+      "type": "app",
+      "cont": "JS:async function runReset() { await system.fs.reset(); system.loadDesktop(); } runReset();",
+      "meta": {
+        "ts": "05/14/2025@00:00"
+      }
+    }
+  },
+  "flags": {
+    "type": "type of item, dir, txt, img, vid, aud, lnk, app, zip",
+    "meta": {
+      "ts": "Timestamp, DD/MM/YYYY@24HH:MM",
+      "attr": ["!del", "!name", "!move", "sys", "ro", "hide", "trsh", "fav"],
+      "icn": "path/too/icon.png, defaults to ^./media/icons/${type}.svg",
+      "auth": "Author of file defaults to System"
+    },
+    "cont": "If dir, this is not used, else if link, path to target, else this is the content of the file"
+  }
+}

@@ -1,0 +1,211 @@
+:root {
+  --main: #26292e;
+  --secondary: #1e2124;
+  --background: #131517;
+  --text: #f1f1f1;
+  --light-text: #aaaaaa;
+  --warn: #e6d581;
+  --success: #5bbd5b;
+  --danger: #e60b42;
+}
+
+* {
+  outline: none;
+  user-select: none;
+  transition: all 0.1s;
+}
+
+body {
+  width: 100%;
+  height: calc(100% - 50%);
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  padding-top: 50px;
+}
+
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 50px;
+  width: 100%;
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  z-index: 100;
+}
+
+#items {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+#items div {
+  width: calc(100% - 30px);
+  height: 30px;
+  margin: 0;
+  padding-left: 30px;
+  line-height: 30px;
+  color: #fff;
+  position: relative;
+  font-family: sans-serif;
+  font-size: 18px;
+  user-select: none;
+}
+
+#items div::after {
+  content: "";
+  position: absolute;
+  top: 2.5px;
+  left: 2.5px;
+  background-position: center;
+  background-image: var(--url);
+  background-repeat: no-repeat;
+  background-size: contain;
+  width: 25px;
+  height: 25px;
+}
+
+#items div:hover {
+  background: var(--main);
+}
+
+.button {
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  margin: 5px;
+  border-radius: 5px;
+}
+
+.button:hover {
+  background: var(--main);
+}
+
+.button.disabled:hover {
+  background: unset;
+}
+
+nav input {
+  height: 30px;
+  padding: 5px;
+  margin: 5px;
+  display: block;
+  background: var(--main);
+  border: none;
+  color: #fff;
+  font-size: 15px;
+  border-radius: 5px;
+  font-weight: 700;
+  width: 100%;
+}
+
+.disabled {
+  opacity: 0.5;
+}
+
+.vr {
+  height: calc(100% - 10px);
+  margin: 5px;
+  width: 1px;
+  background: #fff;
+}
+
+.popup-holder {
+  background: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup {
+  width: 380px;
+  height: fit-content;
+  border-radius: 10px;
+  background: var(--main);
+  padding: 50px 10px;
+  position: relative;
+}
+
+.popup .title {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 20px;
+  line-height: 30px;
+  font-family: monospace;
+  color: white;
+}
+
+.popup .close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 25px;
+  line-height: 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--background);
+  color: white;
+  text-align: center;
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.popup .inputs {
+  height: 30px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.popup .inputs input,
+.popup .inputs select {
+  height: 20px;
+  padding: 5px;
+  background: var(--background);
+  color: white;
+  border: none;
+  border-radius: 5px;
+}
+
+.popup .inputs select {
+  height: 30px;
+}
+
+.popup .buttons {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  width: calc(100% - 20px);
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.popup .buttons button {
+  height: 30px;
+  padding: 5px;
+  background: var(--background);
+  color: white;
+  border: none;
+  border-radius: 5px;
+}
+
+.right {
+  width: fit-content;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

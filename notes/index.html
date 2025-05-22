@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <style>
+      * {
+        user-select: none;
+        outline: none;
+        transition: all 0.1s ease-in-out;
+        color: var(--text);
+        font-family: monospace;
+      }
+
+      :root {
+        --main: #1e2124;
+        --secondary: #26292e;
+        --text: #f1f1f1;
+        --light-text: #aaa;
+        --background: #131517;
+        --warn: #e6d581;
+        --success: #5bbd5b;
+        --danger: #e60b42;
+        --darker: rgba(0, 0, 0, 0.2);
+        --lighter: rgba(255, 255, 255, 0.1);
+        --icon-color: #f1f1f1;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      nav {
+        height: 30px;
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        background: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 999;
+      }
+
+      nav .group {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 30px;
+      }
+
+      nav .group .menu {
+        padding: 0 5px;
+        height: 30px;
+        line-height: 30px;
+        font-size: 17px;
+        position: relative;
+      }
+
+      nav .group .menu:hover {
+        background: var(--main);
+      }
+
+      nav .group .menu .content {
+        position: absolute;
+        width: 250px;
+        height: fit-content;
+        left: 0;
+        background: var(--background);
+        opacity: 0;
+        pointer-events: none;
+        border: 2px var(--main) solid;
+      }
+
+      hr {
+        margin: 0;
+        border: 1px var(--main) solid;
+      }
+
+      nav .group .menu:hover .content {
+        opacity: 1;
+        pointer-events: unset;
+      }
+
+      nav .group .menu .content div {
+        padding: 0 5px;
+        height: 25px;
+        line-height: 25px;
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: calc(100% - 10px);
+      }
+
+      nav .group .menu .content div .main,
+      nav .group .menu .content div .keybind {
+        width: fit-content;
+      }
+
+      nav .group .menu .content div .keybind {
+        color: var(--light-text);
+        font-size: 13px;
+      }
+
+      nav .group .menu .content div:hover {
+        background-color: var(--main);
+      }
+
+      nav .group .text {
+        padding: 0 5px;
+        height: 30px;
+        line-height: 30px;
+        font-size: 17px;
+      }
+
+      nav .group .text:hover {
+        background: var(--main);
+      }
+
+      textarea {
+        position: fixed;
+        padding: 5px;
+        margin: 0;
+        resize: none;
+        top: 30px;
+        left: 0;
+        height: calc(100% - 40px);
+        width: calc(100% - 10px);
+        overflow: auto;
+        background: var(--background);
+        border: none;
+        font-size: 17px;
+        white-space: nowrap;
+      }
+    </style>
+    <nav>
+      <div class="group">
+        <div class="menu">
+          File
+          <div class="content">
+            <div>
+              <div class="main">Open File</div>
+              <div class="keybind">(Ctrl, O)</div>
+            </div>
+            <div>
+              <div class="main">New File</div>
+              <div class="keybind">(Ctrl, N)</div>
+            </div>
+            <div>
+              <div class="main">New Window</div>
+              <div class="keybind">(Ctrl, Shift, N)</div>
+            </div>
+            <hr />
+            <div>
+              <div class="main">Save File</div>
+              <div class="keybind">(Ctrl, S)</div>
+            </div>
+            <div>
+              <div class="main">Save a Copy</div>
+              <div class="keybind">(Ctrl, Shift, S)</div>
+            </div>
+            <hr />
+            <div>
+              <div class="main">Exit</div>
+              <div class="keybind">(Ctrl, E)</div>
+            </div>
+          </div>
+        </div>
+        <div class="menu">
+          Edit
+          <div class="content">
+            <div>
+              <div class="main">Undo</div>
+              <div class="keybind">(Ctrl, Z)</div>
+            </div>
+            <div>
+              <div class="main">Redo</div>
+              <div class="keybind">(Ctrl, Y)</div>
+            </div>
+            <div>
+              <div class="main">Select All</div>
+              <div class="keybind">(Ctrl, A)</div>
+            </div>
+            <hr />
+            <div>
+              <div class="main">Cut</div>
+              <div class="keybind">(Ctrl, X)</div>
+            </div>
+            <div>
+              <div class="main">Copy</div>
+              <div class="keybind">(Ctrl, C)</div>
+            </div>
+            <div>
+              <div class="main">Paste</div>
+              <div class="keybind">(Ctrl, V)</div>
+            </div>
+            <div>
+              <div class="main">Delete</div>
+              <div class="keybind">(Backspace)</div>
+            </div>
+          </div>
+        </div>
+        <div class="menu">
+          View
+          <div class="content">
+            <div>
+              <div class="main">Zoom In</div>
+              <div class="keybind">(Ctrl, +)</div>
+            </div>
+            <div>
+              <div class="main">Zoom Out</div>
+              <div class="keybind">(Ctrl, -)</div>
+            </div>
+            <div>
+              <div class="main">Exact Zoom In</div>
+              <div class="keybind">(Ctrl, Shift, +)</div>
+            </div>
+            <div>
+              <div class="main">Exact Zoom Out</div>
+              <div class="keybind">(Ctrl, Shift, -)</div>
+            </div>
+            <div>
+              <div class="main">Reset Zoom</div>
+              <div class="keybind">(Ctrl, 0)</div>
+            </div>
+          </div>
+        </div>
+        <div class="menu">
+          Tools
+          <div class="content">
+            <div>
+              <div class="main">Find</div>
+              <div class="keybind">(Ctrl, F)</div>
+            </div>
+            <div>
+              <div class="main">Replace First</div>
+              <div class="keybind">(Ctrl, H)</div>
+            </div>
+            <div>
+              <div class="main">Replace All</div>
+              <div class="keybind">(Ctrl, Shift, H)</div>
+            </div>
+            <hr />
+            <div>
+              <div class="main">Go To</div>
+              <div class="keybind">(Ctrl, G)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="group">
+        <div class="text" id="cords">Line 1, Character 0</div>
+        |
+        <div class="text" id="size">17px</div>
+        |
+        <div class="text" id="save">Unsaved</div>
+      </div>
+    </nav>
+    <textarea></textarea>
+    <script src="./cln3.js"></script>
+    <script>
+      const path = null;
+      class FileSystem {
+        constructor() {
+          this.dbName = "AuroraOS";
+          this.storeName = "root";
+          this.dbPromise = this.init();
+        }
+
+        async init() {
+          return new Promise((resolve, reject) => {
+            const req = indexedDB.open(this.dbName, 1);
+            req.onupgradeneeded = (e) => {
+              const db = e.target.result;
+              db.createObjectStore(this.storeName);
+            };
+
+            req.onsuccess = async () => {
+              const db = req.result;
+              const tx = db.transaction(this.storeName, "readonly");
+              const store = tx.objectStore(this.storeName);
+              const countReq = store.count();
+              countReq.onsuccess = async () => {
+                if (countReq.result === 0) {
+                  const txInit = db.transaction(this.storeName, "readwrite");
+                  txInit.oncomplete = () => resolve(db);
+                  txInit.onerror = () => reject(txInit.error);
+                } else {
+                  resolve(db);
+                }
+              };
+
+              countReq.onerror = () => reject(countReq.error);
+            };
+
+            req.onerror = () => reject(req.error);
+          });
+        }
+
+        async get(path) {
+          const db = await this.dbPromise;
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(this.storeName, "readonly");
+            const req = tx.objectStore(this.storeName).get(path);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+          });
+        }
+
+        async put(path, json) {
+          const db = await this.dbPromise;
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(this.storeName, "readwrite");
+            const req = tx.objectStore(this.storeName).put(json, path);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+          });
+        }
+
+        async delete(path) {
+          const db = await this.dbPromise;
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(this.storeName, "readwrite");
+            const req = tx.objectStore(this.storeName).delete(path);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+          });
+        }
+
+        async list(prefix = "") {
+          const db = await this.dbPromise;
+          if (prefix && !prefix.endsWith("/")) prefix += "/";
+          return new Promise(async (resolve, reject) => {
+            const tx = db.transaction(this.storeName, "readonly");
+            const store = tx.objectStore(this.storeName);
+            if (prefix !== "/" && prefix !== "") {
+              const parentPath = prefix.slice(0, -1);
+              const parentCheck = store.get(parentPath);
+              parentCheck.onsuccess = () => {
+                const result = parentCheck.result;
+                if (!result || result.type !== "dir") {
+                  resolve(null);
+                } else {
+                  listChildren();
+                }
+              };
+
+              parentCheck.onerror = () => reject(parentCheck.error);
+            } else {
+              listChildren();
+            }
+
+            function listChildren() {
+              const keys = [];
+              const req = store.openCursor();
+              req.onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                  const key = cursor.key;
+                  if (key.startsWith(prefix)) {
+                    const rest = key.slice(prefix.length);
+                    if (rest && !rest.includes("/")) {
+                      keys.push(key);
+                    }
+                  }
+                  cursor.continue();
+                } else {
+                  resolve(keys);
+                }
+              };
+
+              req.onerror = () => reject(req.error);
+            }
+          });
+        }
+      }
+      const fs = new FileSystem();
+      const textarea = document.querySelector("textarea");
+      const cords = document.getElementById("cords");
+      const size = document.getElementById("size");
+      let fontSize = 17;
+      textarea.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          textarea.value =
+            textarea.value.substring(0, start) +
+            "  " +
+            textarea.value.substring(end);
+          textarea.selectionStart = textarea.selectionEnd = start + 2;
+          updateCursorPosition();
+        } else if (
+          e.ctrlKey &&
+          e.shiftKey &&
+          (e.key === "+" || e.key === "=")
+        ) {
+          e.preventDefault();
+          fontSize += 1;
+          textarea.style.fontSize = `${fontSize}px`;
+          size.innerHTML = `${fontSize}px`;
+        } else if (
+          e.ctrlKey &&
+          e.shiftKey &&
+          (e.key === "-" || e.key === "_")
+        ) {
+          e.preventDefault();
+          fontSize -= 1;
+          textarea.style.fontSize = `${fontSize}px`;
+          size.innerHTML = `${fontSize}px`;
+        } else if (e.ctrlKey && (e.key === "+" || e.key === "=")) {
+          e.preventDefault();
+          fontSize += 2;
+          textarea.style.fontSize = `${fontSize}px`;
+          size.innerHTML = `${fontSize}px`;
+        } else if (e.ctrlKey && (e.key === "-" || e.key === "_")) {
+          e.preventDefault();
+          fontSize -= 2;
+          textarea.style.fontSize = `${fontSize}px`;
+          size.innerHTML = `${fontSize}px`;
+        } else if (e.ctrlKey && e.key === "0") {
+          e.preventDefault();
+          fontSize = 17;
+          textarea.style.fontSize = `${fontSize}px`;
+          size.innerHTML = `${fontSize}px`;
+        } else if (e.ctrlKey && e.key.toLowerCase() == "s") {
+          e.preventDefault();
+          if (!path) {
+            cln3.sendMessage("saveFilePopup", {
+              name: "Unnamed.txt",
+              data: {
+                type: "txt",
+                meta: {
+                  ts: Date.now(),
+                },
+                content: textarea.value,
+              },
+            });
+          } else {
+            fs.put(path, {
+              type: "txt",
+              meta: {
+                ts: Date.now(),
+              },
+              content: textarea.value,
+            });
+          }
+        }
+      });
+
+      textarea.addEventListener("keyup", updateCursorPosition);
+      textarea.addEventListener("click", updateCursorPosition);
+      textarea.addEventListener("input", updateCursorPosition);
+      function updateCursorPosition() {
+        const cursorIndex = textarea.selectionStart;
+        const textUptoCursor = textarea.value.substring(0, cursorIndex);
+        const lines = textUptoCursor.split("\n");
+        const lineNumber = lines.length;
+        const charInLine = lines[lines.length - 1].length + 1;
+        cords.innerText = `Line ${lineNumber}, Character ${charInLine}`;
+      }
+
+      updateCursorPosition();
+    </script>
+  </body>
+</html>

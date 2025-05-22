@@ -1,0 +1,778 @@
+function toggleMenu(type) {
+  document.querySelectorAll("menu").forEach((menu) => {
+    if (!menu.classList.contains(type)) menu.classList.remove("open");
+  });
+  const startMenu = document.querySelector(`.${type}`);
+  startMenu.classList.toggle("open");
+}
+
+setInterval(() => {
+  const date = new Date();
+  const time = date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  document.querySelector("#widget_time").innerText = time;
+}, 500);
+
+class AppHost {
+  #iframes = new Map();
+  #permissions = new Map();
+  constructor() {
+    window.addEventListener("message", this.#handleMessage.bind(this));
+  }
+
+  registerApp(appId, iframe, permissions = [], data = null) {
+    if (!iframe || !(iframe instanceof HTMLIFrameElement)) {
+      throw new Error("Invalid iframe provided.");
+    }
+    this.#iframes.set(appId, iframe);
+    this.#permissions.set(appId, permissions);
+    iframe.onload = () => {
+      iframe.contentWindow?.postMessage(
+        {
+          event: "sendId",
+          data: {
+            appId,
+            permissions,
+          },
+        },
+        "*"
+      );
+      iframe.contentWindow?.postMessage(
+        {
+          event: data?.type,
+          data: data?.data,
+        },
+        "*"
+      );
+    };
+  }
+
+  unregisterApp(appId) {
+    this.#iframes.delete(appId);
+    this.#permissions.delete(appId);
+  }
+
+  sendEventToApp(appId, eventId) {
+    const iframe = this.#iframes.get(appId);
+    if (!iframe) throw new Error(`App with ID "${appId}" not found.`);
+    iframe.contentWindow?.postMessage(
+      {
+        event: "customEvent",
+        data: eventId,
+      },
+      "*"
+    );
+  }
+
+  broadcastEvent(eventId) {
+    for (const [appId, iframe] of this.#iframes) {
+      iframe.contentWindow?.postMessage(
+        {
+          event: "customEvent",
+          data: eventId,
+        },
+        "*"
+      );
+    }
+  }
+
+  #handleMessage(e) {
+    const { appId, type, data } = e.data;
+    if (!appId || !this.#iframes.has(appId)) return;
+    switch (type) {
+      case "log":
+        console.log(`[App ${appId}]`, data);
+        break;
+      case "open":
+        system.openItem(data.path);
+        break;
+      case "saveFilePopup":
+        console.log("saveFilePopup:", data);
+        system.openApp("/apps/files.cln3", {
+          type: "saveFile",
+          data: data,
+        });
+        break;
+      default:
+        console.warn(`Unhandled message type from app ${appId}:`, type);
+    }
+  }
+}
+
+class FileSystem {
+  constructor() {
+    this.dbName = "AuroraOS";
+    this.storeName = "root";
+    this.dbPromise = this.init();
+  }
+
+  async init() {
+    const response = await fetch("./scripts/fs.json");
+    const data = await response.json();
+    this.defaultFS = data.fs;
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(this.dbName, 1);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        db.createObjectStore(this.storeName);
+      };
+
+      req.onsuccess = async () => {
+        const db = req.result;
+        const tx = db.transaction(this.storeName, "readonly");
+        const store = tx.objectStore(this.storeName);
+        const countReq = store.count();
+        countReq.onsuccess = async () => {
+          if (countReq.result === 0) {
+            const txInit = db.transaction(this.storeName, "readwrite");
+            const storeInit = txInit.objectStore(this.storeName);
+            for (const [path, content] of Object.entries(this.defaultFS)) {
+              storeInit.put(content, path);
+            }
+
+            txInit.oncomplete = () => resolve(db);
+            txInit.onerror = () => reject(txInit.error);
+          } else {
+            resolve(db);
+          }
+        };
+
+        countReq.onerror = () => reject(countReq.error);
+      };
+
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async get(path) {
+    const db = await this.dbPromise;
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readonly");
+      const req = tx.objectStore(this.storeName).get(path);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async put(path, json) {
+    const db = await this.dbPromise;
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readwrite");
+      const req = tx.objectStore(this.storeName).put(json, path);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async delete(path) {
+    const db = await this.dbPromise;
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readwrite");
+      const req = tx.objectStore(this.storeName).delete(path);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async list(prefix = "") {
+    const db = await this.dbPromise;
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readonly");
+      const store = tx.objectStore(this.storeName);
+      const keys = [];
+      const req = store.openCursor();
+      req.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          if (cursor.key.startsWith(prefix)) {
+            keys.push(cursor.key);
+          }
+          cursor.continue();
+        } else {
+          resolve(keys);
+        }
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async reset() {
+    const db = await this.dbPromise;
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readwrite");
+      const store = tx.objectStore(this.storeName);
+      const clearReq = store.clear();
+      clearReq.onsuccess = async () => {
+        const response = await fetch("./scripts/fs.json");
+        const data = await response.json();
+        const defaultFS = data.fs;
+        const txRepopulate = db.transaction(this.storeName, "readwrite");
+        const storeRepopulate = txRepopulate.objectStore(this.storeName);
+        for (const [path, content] of Object.entries(defaultFS)) {
+          storeRepopulate.put(content, path);
+        }
+
+        txRepopulate.oncomplete = () => resolve();
+        txRepopulate.onerror = () => reject(txRepopulate.error);
+      };
+
+      clearReq.onerror = () => reject(clearReq.error);
+    });
+  }
+}
+
+class System {
+  constructor() {
+    this.ready = this.init();
+  }
+
+  // el gato preñado
+
+  async init() {
+    this.fs = new FileSystem();
+    this.appHandler = new AppHost();
+    const response = await fetch("./scripts/settings.json");
+    const data = await response.json();
+    this.settings =
+      JSON.parse(localStorage.getItem("settings")) || data.settings;
+    this.bootTime = Date.now();
+    let supportedNotifTypes = ["info", "error", "success", "warn"];
+    this.audioMap = {};
+    supportedNotifTypes.concat("unknown").forEach((type) => {
+      const audio = new Audio(`./media/${type}.wav`);
+      audio.preload = "auto";
+      this.audioMap[type] = audio;
+    });
+    this.openedApps = {};
+  }
+
+  async setup() {
+    await this.ready;
+    await this.loadDesktop();
+    this.loadToolbar();
+    console.log(`System booted in ${Date.now() - this.bootTime}ms`);
+    document.querySelector("load").style.opacity = 0;
+    setTimeout(() => {
+      document.querySelector("load").remove();
+    }, 150);
+  }
+
+  async loadDesktop() {
+    const desktopFolder = await this.fs.list("/desktop");
+    const desktop = document.querySelector("main");
+    desktop.innerHTML = "";
+    desktopFolder.forEach(async (key) => {
+      if (key == "/desktop") return;
+      const appData = await this.fs.get(key);
+      const item = document.createElement("div");
+      item.classList.add("item");
+      const icon = document.createElement("div");
+      icon.classList.add("icon");
+      const supportedTypes = [
+        "txt",
+        "img",
+        "vid",
+        "aud",
+        "zip",
+        "lnk",
+        "dir",
+        "app",
+      ];
+      icon.style = "--url: url(../media/" + appData.type + ".svg)";
+      if (!supportedTypes.includes(appData.type))
+        icon.style = "--url: url(../media/bin.svg)";
+
+      if (appData.type === "lnk") {
+        const linkType = this.fsObjectFromPath(appData.cont).type;
+        icon.style = "--url: url(../media/" + linkType + ".svg)";
+      }
+
+      if (appData.type === "app" && typeof appData.cont !== "string") {
+        const appFiles = await this.unpackageApp(appData.cont);
+        const meta = JSON.parse(await appFiles.get("/meta.json").text());
+        if (meta.icon) {
+          const iconFile = appFiles.get("/" + meta.icon);
+          if (iconFile) {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const base64 = reader.result;
+              icon.style = "--url: url(" + base64 + ")";
+            };
+            reader.readAsDataURL(iconFile);
+          }
+        }
+      }
+      item.ondblclick = () => this.openItem(appData);
+      const name = document.createElement("div");
+      name.classList.add("text");
+      name.innerText = key.replace("/desktop/", "");
+      item.appendChild(icon);
+      item.appendChild(name);
+      desktop.appendChild(item);
+    });
+  }
+
+  loadToolbar() {
+    document.querySelectorAll("nav .group.left .open-app").forEach((thing) => {
+      thing.remove();
+    });
+    Object.entries(this.openedApps).forEach(([appId, app]) => {
+      const appDiv = document.createElement("div");
+      appDiv.classList.add("open-app");
+      appDiv.style = `--url: url(${app.icon})`;
+      appDiv.onclick = () => {
+        const appFrame = document.getElementById(appId);
+        appFrame.classList.toggle("min");
+      };
+      document.querySelector("nav .group.left").appendChild(appDiv);
+    });
+  }
+
+  async unpackageApp(data) {
+    if (!data) {
+      alert("Please select a .cln3 file to run.");
+      return;
+    }
+
+    const mimeTypes = {
+      svg: "image/svg+xml",
+      png: "image/png",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      gif: "image/gif",
+      webp: "image/webp",
+      ico: "image/x-icon",
+      json: "application/json",
+      js: "application/javascript",
+      css: "text/css",
+      html: "text/html",
+      txt: "text/plain",
+      md: "text/markdown",
+    };
+
+    const zipFileMap = new Map();
+    const byteArray = new Uint8Array(data);
+    const file = new Blob([byteArray], { type: "application/zip" });
+    const zip = await JSZip.loadAsync(file);
+    zipFileMap.clear();
+
+    for (const filename in zip.files) {
+      const fileObj = zip.files[filename];
+      if (!fileObj.dir) {
+        const ext = filename.split(".").pop().toLowerCase();
+        const mime = mimeTypes[ext] || "application/octet-stream";
+        const buffer = await fileObj.async("arraybuffer");
+        const blob = new Blob([buffer], { type: mime });
+        zipFileMap.set("/" + filename, blob);
+      }
+    }
+
+    return zipFileMap;
+  }
+
+  async openApp(path, data) {
+    const appId = Date.now();
+    let appObj;
+    if (typeof path != "object") appObj = await this.fs.get(path);
+    else appObj = path;
+    const appFiles = await this.unpackageApp(appObj.cont);
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: "SET_FILES",
+        files: Array.from(appFiles.entries()),
+      });
+    } else {
+      await navigator.serviceWorker.register("./scripts/sw.js");
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.active.postMessage({
+          type: "SET_FILES",
+          files: Array.from(appFiles.entries()),
+        });
+      });
+    }
+
+    const appHolder = document.createElement("div");
+    appHolder.classList.add("app");
+    const app = document.createElement("iframe");
+    const appName = document.createElement("div");
+    appName.classList.add("name");
+    let appIcon;
+    const meta = await appFiles.get("/meta.json").text();
+    const metaData = JSON.parse(meta);
+    if (metaData.icon) {
+      const iconFile = appFiles.get("/" + metaData.icon);
+      if (iconFile) {
+        appIcon = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            resolve(reader.result);
+          };
+          reader.readAsDataURL(iconFile);
+        });
+      }
+    } else {
+      appIcon = "../media/app.svg";
+    }
+    if (!appIcon) appIcon = "../media/app.svg";
+    appName.innerText = metaData.name;
+    const appButtons = document.createElement("div");
+    appButtons.classList.add("buttons");
+    const minButton = document.createElement("div");
+    minButton.classList.add("button");
+    minButton.style = "--url: url(../media/min.svg)";
+    minButton.onclick = () => {
+      appHolder.classList.toggle("min");
+    };
+    const zoomButton = document.createElement("div");
+    zoomButton.classList.add("button");
+    zoomButton.style = "--url: url(../media/zoom.svg)";
+    zoomButton.onclick = () => {
+      if (appHolder.classList.contains("max")) {
+        appHolder.classList.remove("max");
+        zoomButton.style = "--url: url(../media/zoom.svg)";
+      } else {
+        appHolder.classList.add("max");
+        zoomButton.style = "--url: url(../media/unzoom.svg)";
+      }
+    };
+    const closeButton = document.createElement("div");
+    closeButton.classList.add("button");
+    closeButton.style = "--url: url(../media/close.svg)";
+    closeButton.onclick = () => {
+      appHolder.style.animation = "fade-out 0.1s ease-in-out forwards";
+      setTimeout(() => {
+        appHolder.remove();
+        delete this.openedApps[appId];
+        this.loadToolbar();
+        this.appHandler.unregisterApp(appId);
+      }, 220);
+    };
+    appButtons.appendChild(minButton);
+    appButtons.appendChild(zoomButton);
+    appButtons.appendChild(closeButton);
+    appHolder.appendChild(appButtons);
+    appHolder.appendChild(appName);
+    appHolder.appendChild(app);
+    appHolder.id = appId;
+    if (metaData.display?.size) {
+      const size = metaData.display?.size.replace("px", "").split("x");
+      appHolder.style.width = size[0] + "px";
+      appHolder.style.height = size[1] * 1 + 30 + "px";
+    }
+
+    if (metaData.display?.openFullscreen) appHolder.classList.add("max");
+    setTimeout(() => {
+      document.querySelector("main").appendChild(appHolder);
+      app.src = "/index.html";
+      makeDraggable(appHolder);
+    }, 1000);
+    this.openedApps[appId] = { icon: appIcon, name: metaData.name };
+    this.loadToolbar();
+    this.appHandler.registerApp(appId, app, [], data);
+  }
+
+  devUploadApp() {
+    function inferFileType(mime, ext) {
+      if (mime.startsWith("image/")) return "img";
+      if (mime.startsWith("video/")) return "vid";
+      if (mime.startsWith("audio/")) return "aud";
+      if (mime === "application/zip") return "zip";
+      if (ext === "lnk") return "lnk";
+      if (ext === "cln3") return "app";
+      if (mime.startsWith("text/")) return "txt";
+      return "bin";
+    }
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "*/*";
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const data = event.target.result;
+        const mime = file.type || "application/octet-stream";
+        const extension = file.name.split(".").pop().toLowerCase();
+        if (extension === "cln3") {
+          try {
+            const fileMap = await this.unpackageApp(data);
+            const meta = JSON.parse(await fileMap.get("/meta.json").text());
+            await this.fs.put(`/desktop/${file.name}`, {
+              type: "app",
+              cont: Array.from(new Uint8Array(data)),
+              meta: {
+                ts: new Date().toLocaleString(),
+              },
+            });
+          } catch (err) {
+            console.error("Failed to unpack .cln3 file:", err);
+            return this.notify(
+              {
+                title: "Invalid .cln3",
+                desc: "Could not unpack the file. Is it a valid .cln3 package?",
+              },
+              "error"
+            );
+          }
+        } else {
+          await this.fs.put(`/desktop/${file.name}`, {
+            type: inferFileType(mime, extension),
+            cont: Array.from(new Uint8Array(data)),
+            meta: {
+              ts: new Date().toLocaleString(),
+              mime,
+            },
+          });
+        }
+
+        this.loadDesktop();
+      };
+
+      reader.readAsArrayBuffer(file);
+    };
+
+    input.click();
+  }
+
+  async devCreateApp() {
+    const name = prompt("Enter the name of the app") || "New App";
+    const type = prompt("Enter the type of the app") || "app";
+    const cont =
+      prompt("Enter the content of the app") || "JS:console.log('Hello')";
+    if (await this.fs.get(`/desktop/${name}`))
+      return this.notify(
+        {
+          title: "Error",
+          desc: "An app with this name already exists.",
+        },
+        "error"
+      );
+    await this.fs.put(`/desktop/${name}`, {
+      type,
+      cont,
+      meta: {
+        ts: new Date().toLocaleString(),
+      },
+    });
+    this.loadDesktop();
+  }
+
+  async devDeleteApp() {
+    const name = prompt("Enter the name of the app") || "New App";
+    const conf = confirm(
+      `Are you sure you want to delete the app "${name}"? This action cannot be undone.`
+    );
+    if (conf) {
+      await this.fs.delete(`/desktop/${name}`);
+      this.loadDesktop;
+    }
+  }
+
+  async notify(json, type = "info", dur = 5000) {
+    if (!json.title) return console.error("Notification must have a title");
+    if (!json.desc) return console.error("Notification must have a desc");
+    const supportedTypes = ["info", "error", "success", "warn"];
+    const notification = document.createElement("div");
+    notification.classList.add("notif");
+    const notifIcon = document.createElement("div");
+    notifIcon.classList.add("icon");
+    notifIcon.style = "--url: url(../media/" + type + ".svg)";
+    const title = document.createElement("div");
+    title.classList.add("title");
+    title.innerText = json.title;
+    const desc = document.createElement("div");
+    desc.classList.add("desc");
+    desc.innerText = json.desc;
+    notification.appendChild(title);
+    notification.appendChild(desc);
+    if (!supportedTypes.includes(type))
+      notifIcon.style = "--url: url(../media/unknown.svg)";
+    notification.appendChild(notifIcon);
+    const audioType = supportedTypes.includes(type) ? type : "unknown";
+    const aud = this.audioMap[audioType];
+    const playAudio = aud.cloneNode();
+    try {
+      await playAudio.play();
+    } catch (e) {
+      console.warn("Audio play failed:", e);
+    }
+    document.body.appendChild(notification);
+    setTimeout(() => {
+      notification.classList.add("fade");
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 200);
+    }, dur);
+  }
+
+  async openItem(obj) {
+    let item = obj;
+    if (typeof item !== "object") item = await this.fs.get(obj);
+    if (item.type === "lnk") {
+      const target = this.fsObjectFromPath(item.cont);
+      if (target) {
+        this.openItem(target);
+      } else {
+        this.notify(
+          {
+            title: "File not found",
+            desc: `The linked file "${
+              item.cont.split("/").slice(-1)[0]
+            }" was not found.`,
+          },
+          "error"
+        );
+      }
+    } else if (item.type === "app") {
+      if (typeof item.cont === "string" && item.cont?.startsWith("JS:")) {
+        const conf = confirm(
+          "This app want to execute JS code that may be unsafe. Do you want to continue?"
+        );
+        if (conf) {
+          const code = item.cont.substring(3);
+          eval(code);
+        }
+        return;
+      }
+      this.openApp(item);
+    } else if (item.type === "txt") {
+      this.openApp(await this.fs.get("/apps/textEditor.cln3"), item);
+    } else if (
+      item.type === "img" ||
+      item.type === "vid" ||
+      item.type === "aud"
+    ) {
+      const viewer = await this.fs.get("/apps/mediaViewer.cln3");
+      this.openApp(viewer, item);
+    } else if (item.type === "dir" || item.type === "zip") {
+      const fileExplorer = await this.fs.get("/apps/fileExplorer.cln3");
+      this.openApp(fileExplorer, item);
+    } else {
+      this.notify(
+        {
+          title: "Unsupported file",
+          desc: `The file type "${item.type}" is unsupported and cannot opened.`,
+        },
+        "error"
+      );
+    }
+  }
+
+  devNotifCreate() {
+    let opts = { title: "Title", desc: "Description" };
+    this.notify(opts, "info");
+    setTimeout(() => {
+      this.notify(opts, "warn");
+      setTimeout(() => {
+        this.notify(opts, "error");
+        setTimeout(() => {
+          this.notify(opts, "success");
+          setTimeout(() => {
+            this.notify(opts, "b");
+          }, 5000);
+        }, 5000);
+      }, 5000);
+    }, 5000);
+  }
+}
+
+function makeDraggable(elm) {
+  elm.style.left = `${(window.innerWidth - elm.offsetWidth) / 2}px`;
+  elm.style.top = `${(window.innerHeight - elm.offsetHeight) / 2}px`;
+  elm.setAttribute("data-x", 0);
+  elm.setAttribute("data-y", 0);
+  const minWidth = elm.querySelector(".name").offsetWidth + 100;
+  interact(elm)
+    .draggable({
+      modifiers: [
+        interact.modifiers.restrictRect({
+          restriction: "parent",
+        }),
+      ],
+      listeners: {
+        start() {
+          if (elm.classList.contains("max")) return;
+          document
+            .querySelectorAll(".app")
+            .forEach((app) => (app.style.zIndex = 998));
+          elm.style.zIndex = 999;
+          elm.style.transition = "none";
+          document
+            .querySelectorAll(".app iframe")
+            .forEach((app) => (app.style.pointerEvents = "none"));
+        },
+        move(event) {
+          if (elm.classList.contains("max")) return;
+          const target = event.target;
+          const x = (parseFloat(target.getAttribute("data-x")) || 0) + event.dx;
+          const y = (parseFloat(target.getAttribute("data-y")) || 0) + event.dy;
+
+          target.style.transform = `translate(${x}px, ${y}px)`;
+          target.setAttribute("data-x", x);
+          target.setAttribute("data-y", y);
+        },
+        end() {
+          elm.style.transition = "";
+          document
+            .querySelectorAll(".app iframe")
+            .forEach((app) => (app.style.pointerEvents = ""));
+        },
+      },
+    })
+    .resizable({
+      edges: { top: true, left: true, bottom: true, right: true },
+      margin: 4,
+      modifiers: [
+        interact.modifiers.restrictSize({
+          min: { width: minWidth, height: 30 },
+        }),
+        interact.modifiers.restrictRect({
+          restriction: "parent",
+        }),
+      ],
+      listeners: {
+        start() {
+          if (elm.classList.contains("max")) return;
+          document
+            .querySelectorAll(".app")
+            .forEach((app) => (app.style.zIndex = 998));
+          elm.style.zIndex = 999;
+          elm.style.transition = "none";
+          document
+            .querySelectorAll(".app iframe")
+            .forEach((app) => (app.style.pointerEvents = "none"));
+        },
+        move(event) {
+          if (elm.classList.contains("max")) return;
+          const target = event.target;
+          let x = parseFloat(target.getAttribute("data-x")) || 0;
+          let y = parseFloat(target.getAttribute("data-y")) || 0;
+
+          target.style.width = `${event.rect.width}px`;
+          target.style.height = `${event.rect.height}px`;
+
+          x += event.deltaRect.left;
+          y += event.deltaRect.top;
+
+          target.style.transform = `translate(${x}px, ${y}px)`;
+          target.setAttribute("data-x", x);
+          target.setAttribute("data-y", y);
+        },
+        end() {
+          elm.style.transition = "";
+          document
+            .querySelectorAll(".app iframe")
+            .forEach((app) => (app.style.pointerEvents = ""));
+        },
+      },
+    });
+}
+
+const system = new System();
+async function boot() {
+  await system.setup();
+}
+
+boot();

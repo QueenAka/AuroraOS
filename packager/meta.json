@@ -1,0 +1,10 @@
+{
+  "name": "Packager",
+  "author": "Ariah Starstruct",
+  "description": "Default Aurora OS app packager",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "display": {
+    "size": "540x360"
+  }
+}

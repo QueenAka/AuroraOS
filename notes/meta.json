@@ -1,0 +1,10 @@
+{
+  "name": "Notepad",
+  "author": "Ariah Starstruct",
+  "description": "Default Aurora OS text editor",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "display": {
+    "size": "570x310"
+  }
+}

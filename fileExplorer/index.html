@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="./files.css" rel="stylesheet" />
+  </head>
+  <body>
+    <nav>
+      <img
+        class="button disabled"
+        src="./media/back.svg"
+        onclick='nav("back")'
+        id="back" />
+      <img
+        class="button disabled"
+        src="./media/forward.svg"
+        onclick='nav("forward")'
+        id="forward" />
+      <img class="button" src="./media/home.svg" onclick='nav("home")' />
+      <img class="button" src="./media/reload.svg" onclick='nav("reload")' />
+      <input id="location" />
+      <div id="right" class="right">
+        <img class="button" src="./media/grid.svg" />
+        <div class="vr"></div>
+        <img
+          class="button"
+          src="./media/new-folder.svg"
+          onclick="nav('newDir')" />
+        <img
+          class="button"
+          src="./media/new-file.svg"
+          onclick="nav('newFile')" />
+        <img
+          class="button"
+          src="./media/upload-file.svg"
+          onclick="nav('uploadFile')" />
+        <img class="button disabled" src="./media/rename.svg" />
+        <img class="button disabled" src="./media/delete.svg" />
+      </div>
+    </nav>
+    <div id="items"></div>
+    <script src="./script.js"></script>
+    <script src="./libraries.js"></script>
+    <script src="./cln3.js"></script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "Files",
+  "author": "Ariah Starstruct",
+  "description": "Default Aurora OS file manager",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "display": {
+    "openFullscreen": true
+  }
+}
