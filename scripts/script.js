@@ -24,6 +24,13 @@ class AppHost {
 
   registerApp(appId, iframe, permissions = [], data = null) {
     if (!iframe || !(iframe instanceof HTMLIFrameElement)) {
+      this.notify(
+        {
+          title: "App register failed",
+          desc: `Failed to register app, some features may not function`,
+        },
+        "error"
+      );
       throw new Error("Invalid iframe provided.");
     }
     this.#iframes.set(appId, iframe);
@@ -304,7 +311,7 @@ class System {
           }
         }
       }
-      item.ondblclick = () => this.openItem(appData);
+      item.ondblclick = () => this.openItem(key);
       const name = document.createElement("div");
       name.classList.add("text");
       name.innerText = key.replace("/desktop/", "");
@@ -459,115 +466,22 @@ class System {
     if (metaData.display?.size) {
       const size = metaData.display?.size.replace("px", "").split("x");
       appHolder.style.width = size[0] + "px";
-      appHolder.style.height = size[1] * 1 + 30 + "px";
+      appHolder.style.height = size[1] * 1 + 30 + "px"; // bcuz window nav is 30 px tall mhm
     }
 
     if (metaData.display?.openFullscreen) appHolder.classList.add("max");
+    if (metaData.display?.resize === false) {
+      zoomButton.remove();
+      appHolder.classList.remove("max"); // Incase dev toggled both flags
+    }
     setTimeout(() => {
       document.querySelector("main").appendChild(appHolder);
       app.src = "/index.html";
-      makeDraggable(appHolder);
+      makeDraggable(appHolder, metaData.display?.resize ?? true);
     }, 1000);
     this.openedApps[appId] = { icon: appIcon, name: metaData.name };
     this.loadToolbar();
     this.appHandler.registerApp(appId, app, [], data);
-  }
-
-  devUploadApp() {
-    function inferFileType(mime, ext) {
-      if (mime.startsWith("image/")) return "img";
-      if (mime.startsWith("video/")) return "vid";
-      if (mime.startsWith("audio/")) return "aud";
-      if (mime === "application/zip") return "zip";
-      if (ext === "lnk") return "lnk";
-      if (ext === "cln3") return "app";
-      if (mime.startsWith("text/")) return "txt";
-      return "bin";
-    }
-
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "*/*";
-    input.onchange = async (e) => {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const data = event.target.result;
-        const mime = file.type || "application/octet-stream";
-        const extension = file.name.split(".").pop().toLowerCase();
-        if (extension === "cln3") {
-          try {
-            const fileMap = await this.unpackageApp(data);
-            const meta = JSON.parse(await fileMap.get("/meta.json").text());
-            await this.fs.put(`/desktop/${file.name}`, {
-              type: "app",
-              cont: Array.from(new Uint8Array(data)),
-              meta: {
-                ts: new Date().toLocaleString(),
-              },
-            });
-          } catch (err) {
-            console.error("Failed to unpack .cln3 file:", err);
-            return this.notify(
-              {
-                title: "Invalid .cln3",
-                desc: "Could not unpack the file. Is it a valid .cln3 package?",
-              },
-              "error"
-            );
-          }
-        } else {
-          await this.fs.put(`/desktop/${file.name}`, {
-            type: inferFileType(mime, extension),
-            cont: Array.from(new Uint8Array(data)),
-            meta: {
-              ts: new Date().toLocaleString(),
-              mime,
-            },
-          });
-        }
-
-        this.loadDesktop();
-      };
-
-      reader.readAsArrayBuffer(file);
-    };
-
-    input.click();
-  }
-
-  async devCreateApp() {
-    const name = prompt("Enter the name of the app") || "New App";
-    const type = prompt("Enter the type of the app") || "app";
-    const cont =
-      prompt("Enter the content of the app") || "JS:console.log('Hello')";
-    if (await this.fs.get(`/desktop/${name}`))
-      return this.notify(
-        {
-          title: "Error",
-          desc: "An app with this name already exists.",
-        },
-        "error"
-      );
-    await this.fs.put(`/desktop/${name}`, {
-      type,
-      cont,
-      meta: {
-        ts: new Date().toLocaleString(),
-      },
-    });
-    this.loadDesktop();
-  }
-
-  async devDeleteApp() {
-    const name = prompt("Enter the name of the app") || "New App";
-    const conf = confirm(
-      `Are you sure you want to delete the app "${name}"? This action cannot be undone.`
-    );
-    if (conf) {
-      await this.fs.delete(`/desktop/${name}`);
-      this.loadDesktop;
-    }
   }
 
   async notify(json, type = "info", dur = 5000) {
@@ -607,9 +521,8 @@ class System {
     }, dur);
   }
 
-  async openItem(obj) {
-    let item = obj;
-    if (typeof item !== "object") item = await this.fs.get(obj);
+  async openItem(path) {
+    let item = await this.fs.get(path);
     if (item.type === "lnk") {
       const target = this.fsObjectFromPath(item.cont);
       if (target) {
@@ -626,15 +539,37 @@ class System {
         );
       }
     } else if (item.type === "app") {
-      if (typeof item.cont === "string" && item.cont?.startsWith("JS:")) {
-        const conf = confirm(
-          "This app want to execute JS code that may be unsafe. Do you want to continue?"
-        );
-        if (conf) {
-          const code = item.cont.substring(3);
-          eval(code);
+      if (typeof item.cont === "string") {
+        if (item.cont?.startsWith("JS:")) {
+          const conf = confirm(
+            "This app want to execute JS code that may be unsafe. Do you want to continue?"
+          );
+          if (conf) {
+            const code = item.cont.substring(3);
+            eval(code);
+          }
+          return;
+        } else if (item.cont?.startsWith("LD:")) {
+          const url = item.cont.substring(3);
+          fetch(url)
+            .then((res) => res.arrayBuffer())
+            .then(async (arrayBuffer) => {
+              item.cont = arrayBuffer;
+              await this.fs.put(path, item);
+              this.openApp(item);
+            })
+            .catch((error) => {
+              console.error("Failed to fetch ZIP:", error);
+              this.notify(
+                {
+                  title: "Invalid .cln3",
+                  desc: "Could not unpack the file. Is it a valid .cln3 package?",
+                },
+                "error"
+              );
+            });
+          return;
         }
-        return;
       }
       this.openApp(item);
     } else if (item.type === "txt") {
@@ -653,75 +588,60 @@ class System {
       this.notify(
         {
           title: "Unsupported file",
-          desc: `The file type "${item.type}" is unsupported and cannot opened.`,
+          desc: `The file type "${item.type}" is unsupported and cannot be opened.`,
         },
         "error"
       );
     }
   }
-
-  devNotifCreate() {
-    let opts = { title: "Title", desc: "Description" };
-    this.notify(opts, "info");
-    setTimeout(() => {
-      this.notify(opts, "warn");
-      setTimeout(() => {
-        this.notify(opts, "error");
-        setTimeout(() => {
-          this.notify(opts, "success");
-          setTimeout(() => {
-            this.notify(opts, "b");
-          }, 5000);
-        }, 5000);
-      }, 5000);
-    }, 5000);
-  }
 }
 
-function makeDraggable(elm) {
+function makeDraggable(elm, shouldResize = true) {
   elm.style.left = `${(window.innerWidth - elm.offsetWidth) / 2}px`;
   elm.style.top = `${(window.innerHeight - elm.offsetHeight) / 2}px`;
   elm.setAttribute("data-x", 0);
   elm.setAttribute("data-y", 0);
   const minWidth = elm.querySelector(".name").offsetWidth + 100;
-  interact(elm)
-    .draggable({
-      modifiers: [
-        interact.modifiers.restrictRect({
-          restriction: "parent",
-        }),
-      ],
-      listeners: {
-        start() {
-          if (elm.classList.contains("max")) return;
-          document
-            .querySelectorAll(".app")
-            .forEach((app) => (app.style.zIndex = 998));
-          elm.style.zIndex = 999;
-          elm.style.transition = "none";
-          document
-            .querySelectorAll(".app iframe")
-            .forEach((app) => (app.style.pointerEvents = "none"));
-        },
-        move(event) {
-          if (elm.classList.contains("max")) return;
-          const target = event.target;
-          const x = (parseFloat(target.getAttribute("data-x")) || 0) + event.dx;
-          const y = (parseFloat(target.getAttribute("data-y")) || 0) + event.dy;
 
-          target.style.transform = `translate(${x}px, ${y}px)`;
-          target.setAttribute("data-x", x);
-          target.setAttribute("data-y", y);
-        },
-        end() {
-          elm.style.transition = "";
-          document
-            .querySelectorAll(".app iframe")
-            .forEach((app) => (app.style.pointerEvents = ""));
-        },
+  const interaction = interact(elm).draggable({
+    modifiers: [
+      interact.modifiers.restrictRect({
+        restriction: "parent",
+      }),
+    ],
+    listeners: {
+      start() {
+        if (elm.classList.contains("max")) return;
+        document
+          .querySelectorAll(".app")
+          .forEach((app) => (app.style.zIndex = 998));
+        elm.style.zIndex = 999;
+        elm.style.transition = "none";
+        document
+          .querySelectorAll(".app iframe")
+          .forEach((app) => (app.style.pointerEvents = "none"));
       },
-    })
-    .resizable({
+      move(event) {
+        if (elm.classList.contains("max")) return;
+        const target = event.target;
+        const x = (parseFloat(target.getAttribute("data-x")) || 0) + event.dx;
+        const y = (parseFloat(target.getAttribute("data-y")) || 0) + event.dy;
+
+        target.style.transform = `translate(${x}px, ${y}px)`;
+        target.setAttribute("data-x", x);
+        target.setAttribute("data-y", y);
+      },
+      end() {
+        elm.style.transition = "";
+        document
+          .querySelectorAll(".app iframe")
+          .forEach((app) => (app.style.pointerEvents = ""));
+      },
+    },
+  });
+
+  if (shouldResize) {
+    interaction.resizable({
       edges: { top: true, left: true, bottom: true, right: true },
       margin: 4,
       modifiers: [
@@ -768,6 +688,7 @@ function makeDraggable(elm) {
         },
       },
     });
+  }
 }
 
 const system = new System();

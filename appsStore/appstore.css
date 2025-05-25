@@ -1,0 +1,144 @@
+* {
+  user-select: none;
+  outline: none;
+  transition: all 0.1s ease-in-out;
+  color: var(--text);
+}
+
+:root {
+  --main: #1e2124;
+  --secondary: #26292e;
+  --text: #f1f1f1;
+  --light-text: #aaa;
+  --background: #131517;
+  --highlights: #d80448;
+  --warn: #e6d581;
+  --success: #5bbd5b;
+  --danger: #e60b42;
+  --darker: rgba(0, 0, 0, 0.2);
+  --lighter: rgba(255, 255, 255, 0.1);
+  --icon-color: #f1f1f1;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: var(--main);
+}
+
+nav {
+  position: fixed;
+  top: 0px;
+  left: 10px;
+  width: 500px;
+  height: 45px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--main);
+  z-index: 1000;
+}
+
+nav input {
+  border-radius: 10px;
+  background: var(--background);
+  border: none;
+  padding: 5px;
+  height: 25px;
+  width: 365px;
+  padding-left: 40px;
+  position: relative;
+}
+
+nav .input {
+  content: "";
+  background-image: url(search.svg);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  position: absolute;
+  top: 13px;
+  left: 10px;
+  width: 20px;
+  height: 20px;
+  z-index: 100;
+}
+
+nav button {
+  border-radius: 10px;
+  background: var(--background);
+  border: none;
+  padding: 5px;
+  height: 35px;
+  width: 85px;
+}
+
+.cards {
+  position: absolute;
+  top: 45px;
+  left: 10px;
+  width: 500px;
+}
+
+.card {
+  background: var(--background);
+  padding: 10px;
+  width: calc(100% - 60px);
+  height: 35px;
+  padding-left: 50px;
+  position: relative;
+  margin-bottom: 5px;
+  border-radius: 10px;
+  display: block;
+}
+
+.card .icon {
+  width: 35px;
+  height: 35px;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-image: var(--url);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.card .name {
+  position: absolute;
+  top: 10px;
+  left: 50px;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 20px;
+}
+
+.card .desc {
+  position: absolute;
+  top: 30px;
+  left: 50px;
+  font-size: 15px;
+  color: var(--light-text);
+  line-height: 15px;
+}
+
+main {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 235px;
+  width: 520px;
+  overflow: scroll;
+  overflow-x: hidden;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+main::-webkit-scrollbar {
+  display: none;
+}

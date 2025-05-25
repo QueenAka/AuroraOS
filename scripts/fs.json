@@ -3,67 +3,71 @@
     "/desktop": {
       "type": "dir",
       "meta": {
-        "ts": "05/14/2025@00:00",
+        "ts": 1747180800000,
         "attr": ["!del", "!name", "!move"]
       }
     },
     "/downloads": {
       "type": "dir",
       "meta": {
-        "ts": "05/14/2025@00:00"
+        "ts": 1747180800000
       }
     },
     "/documents": {
       "type": "dir",
       "meta": {
-        "ts": "05/14/2025@00:00"
+        "ts": 1747180800000
       }
     },
     "/uploads": {
       "type": "dir",
       "meta": {
-        "ts": "05/14/2025@00:00"
+        "ts": 1747180800000
       }
     },
     "/apps": {
       "type": "dir",
       "meta": {
-        "ts": "05/14/2025@00:00"
+        "ts": 1747180800000
       }
     },
-    "/desktop/uploadFile": {
+    "/apps/files.cln3": {
       "type": "app",
-      "cont": "JS:system.devUploadApp()",
+      "cont": "LD:./apps/files.cln3",
       "meta": {
-        "ts": "05/14/2025@00:00"
+        "ts": 1747180800000,
+        "attr": ["system"]
       }
     },
-    "/desktop/createApp": {
+    "/desktop/files.cln3": {
       "type": "app",
-      "cont": "JS:system.devCreateApp()",
+      "cont": "LD:./apps/files.cln3",
       "meta": {
-        "ts": "05/14/2025@00:00"
+        "ts": 1747180800000,
+        "attr": ["system"]
       }
     },
-    "/desktop/deleteApp": {
+    "/apps/notepad.cln3": {
       "type": "app",
-      "cont": "JS:system.devDeleteApp()",
+      "cont": "LD:./apps/notepad.cln3",
       "meta": {
-        "ts": "05/14/2025@00:00"
+        "ts": 1747180800000,
+        "attr": ["system"]
       }
     },
-    "/desktop/notifTest": {
+    "/apps/marketplace.cln3": {
       "type": "app",
-      "cont": "JS:system.devNotifCreate()",
+      "cont": "LD:./apps/marketplace.cln3",
       "meta": {
-        "ts": "05/14/2025@00:00"
+        "ts": 1747180800000,
+        "attr": ["system"]
       }
     },
     "/desktop/factoryReset": {
       "type": "app",
       "cont": "JS:async function runReset() { await system.fs.reset(); system.loadDesktop(); } runReset();",
       "meta": {
-        "ts": "05/14/2025@00:00"
+        "ts": 1747180800000
       }
     }
   },

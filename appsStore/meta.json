@@ -1,0 +1,11 @@
+{
+  "name": "Marketplace",
+  "author": "Ariah Starstruct",
+  "description": "Default App OS app store / package manager",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "display": {
+    "resize": false,
+    "size": "530x250"
+  }
+}
