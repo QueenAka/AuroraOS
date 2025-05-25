@@ -72,17 +72,64 @@ nav .icon:active {
   position: fixed;
   bottom: -400px;
   left: 0;
-  width: 300px;
-  height: 400px;
+  width: 350px;
+  height: 300px;
   background: var(--background);
   border-radius: 0 10px 0 0;
   margin: 0;
   padding: 0;
   z-index: 1000;
+  padding-left: 150px;
 }
 
 .start.open {
   bottom: 50px;
+}
+
+.start .left {
+  position: absolute;
+  width: 150px;
+  height: 100%;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: end;
+}
+
+.start .left .icon {
+  width: 100px;
+  height: 50px;
+  color: white;
+  padding-left: 50px;
+  position: relative;
+  font-size: 18px;
+  line-height: 50px;
+}
+
+.start .left .icon:hover {
+  background: var(--lighter);
+}
+
+.start .left .icon::after {
+  content: "";
+  width: 50px;
+  height: 50px;
+  mask-image: var(--url);
+  mask-size: 35px;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  cursor: pointer;
+  background-color: var(--icon-color);
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: all 0.1s ease-in-out;
+}
+
+.start .left .icon:hover::after {
+  mask-size: 40px;
 }
 
 .notifs {

@@ -1,3 +1,4 @@
+// TODO: ... This ... Uhm ... Yea
 function toggleMenu(type) {
   document.querySelectorAll("menu").forEach((menu) => {
     if (!menu.classList.contains(type)) menu.classList.remove("open");
@@ -6,6 +7,7 @@ function toggleMenu(type) {
   startMenu.classList.toggle("open");
 }
 
+// TODO: And this, holy shit 😨
 setInterval(() => {
   const date = new Date();
   const time = date.toLocaleTimeString([], {
@@ -75,6 +77,7 @@ class AppHost {
 
   broadcastEvent(eventId) {
     for (const [appId, iframe] of this.#iframes) {
+      // Why are we getting appId?
       iframe.contentWindow?.postMessage(
         {
           event: "customEvent",
@@ -97,7 +100,8 @@ class AppHost {
         break;
       case "saveFilePopup":
         console.log("saveFilePopup:", data);
-        system.openApp("/apps/files.cln3", {
+        // Proper openItem usage!!! Woohoo!!!
+        system.openItem("/apps/files.cln3", {
           type: "saveFile",
           data: data,
         });
@@ -108,6 +112,7 @@ class AppHost {
   }
 }
 
+// This whole thing was PAINFUL to get working, deff worth tho
 class FileSystem {
   constructor() {
     this.dbName = "AuroraOS";
@@ -184,24 +189,50 @@ class FileSystem {
   }
 
   async list(prefix = "") {
+    // Updated so that it doesnt give children of folders, sorry Rina
     const db = await this.dbPromise;
-    return new Promise((resolve, reject) => {
+    if (prefix && !prefix.endsWith("/")) prefix += "/";
+    return new Promise(async (resolve, reject) => {
       const tx = db.transaction(this.storeName, "readonly");
       const store = tx.objectStore(this.storeName);
-      const keys = [];
-      const req = store.openCursor();
-      req.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) {
-          if (cursor.key.startsWith(prefix)) {
-            keys.push(cursor.key);
+      if (prefix !== "/" && prefix !== "") {
+        const parentPath = prefix.slice(0, -1);
+        const parentCheck = store.get(parentPath);
+        parentCheck.onsuccess = () => {
+          const result = parentCheck.result;
+          if (!result || result.type !== "dir") {
+            resolve(null);
+          } else {
+            listChildren();
           }
-          cursor.continue();
-        } else {
-          resolve(keys);
-        }
-      };
-      req.onerror = () => reject(req.error);
+        };
+
+        parentCheck.onerror = () => reject(parentCheck.error);
+      } else {
+        listChildren();
+      }
+
+      function listChildren() {
+        const keys = [];
+        const req = store.openCursor();
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            const key = cursor.key;
+            if (key.startsWith(prefix)) {
+              const rest = key.slice(prefix.length);
+              if (rest && !rest.includes("/")) {
+                keys.push(key);
+              }
+            }
+            cursor.continue();
+          } else {
+            resolve(keys);
+          }
+        };
+
+        req.onerror = () => reject(req.error);
+      }
     });
   }
 
@@ -221,11 +252,21 @@ class FileSystem {
           storeRepopulate.put(content, path);
         }
 
-        txRepopulate.oncomplete = () => resolve();
-        txRepopulate.onerror = () => reject(txRepopulate.error);
+        // Reload because for some reason it fucks up if apps are open after reset
+        txRepopulate.oncomplete = () => {
+          resolve();
+          window.location.reload();
+        };
+        txRepopulate.onerror = () => {
+          reject(txRepopulate.error);
+          window.location.reload();
+        };
       };
 
-      clearReq.onerror = () => reject(clearReq.error);
+      clearReq.onerror = () => {
+        reject(clearReq.error);
+        window.location.reload();
+      };
     });
   }
 }
@@ -235,7 +276,8 @@ class System {
     this.ready = this.init();
   }
 
-  // el gato preñado
+  // el gato MUY preñado
+  // ... Huh?
 
   async init() {
     this.fs = new FileSystem();
@@ -244,11 +286,12 @@ class System {
     const data = await response.json();
     this.settings =
       JSON.parse(localStorage.getItem("settings")) || data.settings;
-    this.bootTime = Date.now();
+    this.bootTime = Date.now(); // For uptime
+    // Preload notif audios for better playback
     let supportedNotifTypes = ["info", "error", "success", "warn"];
     this.audioMap = {};
     supportedNotifTypes.concat("unknown").forEach((type) => {
-      const audio = new Audio(`./media/${type}.wav`);
+      const audio = new Audio(`./media/notif/${type}.wav`);
       audio.preload = "auto";
       this.audioMap[type] = audio;
     });
@@ -287,16 +330,18 @@ class System {
         "dir",
         "app",
       ];
-      icon.style = "--url: url(../media/" + appData.type + ".svg)";
+      icon.style = "--url: url(../media/appIcons/" + appData.type + ".svg)";
       if (!supportedTypes.includes(appData.type))
-        icon.style = "--url: url(../media/bin.svg)";
+        icon.style = "--url: url(../media/appIcons/bin.svg)";
 
       if (appData.type === "lnk") {
+        // TODO: Make this get the app icon if linkType is "app"
         const linkType = this.fsObjectFromPath(appData.cont).type;
-        icon.style = "--url: url(../media/" + linkType + ".svg)";
+        icon.style = "--url: url(../media/appIcons/" + linkType + ".svg)";
       }
 
       if (appData.type === "app" && typeof appData.cont !== "string") {
+        // NOTE: Consider making a icon loader method for apps
         const appFiles = await this.unpackageApp(appData.cont);
         const meta = JSON.parse(await appFiles.get("/meta.json").text());
         if (meta.icon) {
@@ -339,7 +384,13 @@ class System {
 
   async unpackageApp(data) {
     if (!data) {
-      alert("Please select a .cln3 file to run.");
+      this.notify(
+        {
+          title: "Failed to load app",
+          desc: "No package data was found, might be an invalid file",
+        },
+        "error"
+      );
       return;
     }
 
@@ -379,12 +430,15 @@ class System {
     return zipFileMap;
   }
 
+  // Should only be called inside openItem for type handling
   async openApp(path, data) {
     const appId = Date.now();
     let appObj;
     if (typeof path != "object") appObj = await this.fs.get(path);
     else appObj = path;
     const appFiles = await this.unpackageApp(appObj.cont);
+    // I have no clue how service workers work, thanks Rina for doing this ♥
+    // No problem :P
     if (navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
         type: "SET_FILES",
@@ -420,33 +474,33 @@ class System {
         });
       }
     } else {
-      appIcon = "../media/app.svg";
+      appIcon = "../media/appIcons/app.svg";
     }
-    if (!appIcon) appIcon = "../media/app.svg";
+    if (!appIcon) appIcon = "../media/appIcons/app.svg";
     appName.innerText = metaData.name;
     const appButtons = document.createElement("div");
     appButtons.classList.add("buttons");
     const minButton = document.createElement("div");
     minButton.classList.add("button");
-    minButton.style = "--url: url(../media/min.svg)";
+    minButton.style = "--url: url(../media/window/min.svg)";
     minButton.onclick = () => {
       appHolder.classList.toggle("min");
     };
     const zoomButton = document.createElement("div");
     zoomButton.classList.add("button");
-    zoomButton.style = "--url: url(../media/zoom.svg)";
+    zoomButton.style = "--url: url(../media/window/zoom.svg)";
     zoomButton.onclick = () => {
       if (appHolder.classList.contains("max")) {
         appHolder.classList.remove("max");
-        zoomButton.style = "--url: url(../media/zoom.svg)";
+        zoomButton.style = "--url: url(../media/window/zoom.svg)";
       } else {
         appHolder.classList.add("max");
-        zoomButton.style = "--url: url(../media/unzoom.svg)";
+        zoomButton.style = "--url: url(../media/window/unzoom.svg)";
       }
     };
     const closeButton = document.createElement("div");
     closeButton.classList.add("button");
-    closeButton.style = "--url: url(../media/close.svg)";
+    closeButton.style = "--url: url(../media/window/close.svg)";
     closeButton.onclick = () => {
       appHolder.style.animation = "fade-out 0.1s ease-in-out forwards";
       setTimeout(() => {
@@ -472,7 +526,8 @@ class System {
     if (metaData.display?.openFullscreen) appHolder.classList.add("max");
     if (metaData.display?.resize === false) {
       zoomButton.remove();
-      appHolder.classList.remove("max"); // Incase dev toggled both flags
+      appHolder.classList.remove("max"); // Incase both flags were called
+      // dont want unshrinkable fullscreen apps
     }
     setTimeout(() => {
       document.querySelector("main").appendChild(appHolder);
@@ -486,13 +541,14 @@ class System {
 
   async notify(json, type = "info", dur = 5000) {
     if (!json.title) return console.error("Notification must have a title");
-    if (!json.desc) return console.error("Notification must have a desc");
+    if (!json.desc)
+      return console.error("Notification must have a description");
     const supportedTypes = ["info", "error", "success", "warn"];
     const notification = document.createElement("div");
     notification.classList.add("notif");
     const notifIcon = document.createElement("div");
     notifIcon.classList.add("icon");
-    notifIcon.style = "--url: url(../media/" + type + ".svg)";
+    notifIcon.style = "--url: url(../media/notif/" + type + ".svg)";
     const title = document.createElement("div");
     title.classList.add("title");
     title.innerText = json.title;
@@ -502,7 +558,7 @@ class System {
     notification.appendChild(title);
     notification.appendChild(desc);
     if (!supportedTypes.includes(type))
-      notifIcon.style = "--url: url(../media/unknown.svg)";
+      notifIcon.style = "--url: url(../media/notif/unknown.svg)";
     notification.appendChild(notifIcon);
     const audioType = supportedTypes.includes(type) ? type : "unknown";
     const aud = this.audioMap[audioType];
@@ -521,6 +577,7 @@ class System {
     }, dur);
   }
 
+  // openItem should be the only method to call openApp
   async openItem(path) {
     let item = await this.fs.get(path);
     if (item.type === "lnk") {
@@ -533,7 +590,7 @@ class System {
             title: "File not found",
             desc: `The linked file "${
               item.cont.split("/").slice(-1)[0]
-            }" was not found.`,
+            }" was not found`,
           },
           "error"
         );
@@ -563,7 +620,7 @@ class System {
               this.notify(
                 {
                   title: "Invalid .cln3",
-                  desc: "Could not unpack the file. Is it a valid .cln3 package?",
+                  desc: "Could not unpack file, it may be an invalid package",
                 },
                 "error"
               );
@@ -573,30 +630,69 @@ class System {
       }
       this.openApp(item);
     } else if (item.type === "txt") {
-      this.openApp(await this.fs.get("/apps/textEditor.cln3"), item);
+      this.openItem("/apps/notepad.cln3", item);
     } else if (
       item.type === "img" ||
       item.type === "vid" ||
       item.type === "aud"
     ) {
-      const viewer = await this.fs.get("/apps/mediaViewer.cln3");
-      this.openApp(viewer, item);
+      this.openItem("/apps/media.cln3", item);
     } else if (item.type === "dir" || item.type === "zip") {
-      const fileExplorer = await this.fs.get("/apps/fileExplorer.cln3");
-      this.openApp(fileExplorer, item);
+      this.openItem("/apps/files.cln3", item);
     } else {
+      // Shouldnt really ever happen, but its possible
       this.notify(
         {
           title: "Unsupported file",
-          desc: `The file type "${item.type}" is unsupported and cannot be opened.`,
+          desc: `The file type "${item.type}" is unsupported and cannot be opened`,
         },
         "error"
       );
     }
   }
+
+  async getStorage() {
+    if (!navigator.storage?.estimate) {
+      // warn the user their browser is ass lmfao
+      this.notify(
+        {
+          title: "Cannot calculate storage",
+          desc: "Your browser does not support the storage API",
+        },
+        "warn"
+      );
+      throw new Error("Storage estimation not supported in this browser.");
+    }
+
+    function formatBytes(bytes) {
+      const units = ["bytes", "KB", "MB", "GB", "TB", "PB"]; // we got a good 10 yrs before this goes beyond
+      let i = 0;
+
+      while (bytes >= 1024 && i < units.length - 1) {
+        bytes /= 1024;
+        i++;
+      }
+
+      return `${bytes.toFixed(2)} ${units[i]}`;
+    }
+
+    const estimate = await navigator.storage.estimate();
+    const used = estimate.usage;
+    const quota = estimate.quota;
+    const remaining = quota - used;
+
+    return {
+      used: formatBytes(used),
+      limit: formatBytes(quota),
+      remaining: formatBytes(remaining),
+      percent: (used / quota) * 100, // Send as int with * 1 bcuz parseInt is ass
+      exact: [used, quota],
+    };
+  }
 }
 
 function makeDraggable(elm, shouldResize = true) {
+  // Center the window
   elm.style.left = `${(window.innerWidth - elm.offsetWidth) / 2}px`;
   elm.style.top = `${(window.innerHeight - elm.offsetHeight) / 2}px`;
   elm.setAttribute("data-x", 0);
@@ -616,9 +712,10 @@ function makeDraggable(elm, shouldResize = true) {
           .querySelectorAll(".app")
           .forEach((app) => (app.style.zIndex = 998));
         elm.style.zIndex = 999;
-        elm.style.transition = "none";
+        elm.style.transition = "none"; // stop weird jagged motion while dragging
         document
           .querySelectorAll(".app iframe")
+          // stop from other apps capturing the mouse, interupting the move
           .forEach((app) => (app.style.pointerEvents = "none"));
       },
       move(event) {
@@ -642,7 +739,7 @@ function makeDraggable(elm, shouldResize = true) {
 
   if (shouldResize) {
     interaction.resizable({
-      edges: { top: true, left: true, bottom: true, right: true },
+      edges: { top: true, left: true, bottom: true, right: true }, // There should a an all flag for this 💔
       margin: 4,
       modifiers: [
         interact.modifiers.restrictSize({
@@ -662,6 +759,7 @@ function makeDraggable(elm, shouldResize = true) {
           elm.style.transition = "none";
           document
             .querySelectorAll(".app iframe")
+            // stop from other apps capturing the mouse, interupting the drag
             .forEach((app) => (app.style.pointerEvents = "none"));
         },
         move(event) {

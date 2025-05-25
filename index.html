@@ -1,16 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="./scripts/libraries.js"></script>
     <link rel="stylesheet" href="./styles/styles.css" />
-    <meta
-      http-equiv="Cache-Control"
-      content="no-store, no-cache, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <title>Aurora OS</title>
+    <title>Marble OS</title>
   </head>
   <body>
     <load>
@@ -28,15 +22,39 @@
         <div class="widget text" id="widget_time"></div>
         <div
           class="icon"
-          style="--url: url(../media/view.svg)"
+          style="--url: url(../media/toolbar/view.svg)"
           onclick="toggleMenu('view')"></div>
         <div
           class="icon"
-          style="--url: url(../media/notif.svg)"
+          style="--url: url(../media/toolbar/notif.svg)"
           onclick="toggleMenu('notifs')"></div>
       </div>
     </nav>
-    <menu class="start"></menu>
+    <menu class="start">
+      <div class="left">
+        <div class="icon" style="--url: url(../media/startMenu/about.svg)">
+          About
+        </div>
+        <div class="icon" style="--url: url(../media/startMenu/apps.svg)">
+          Apps
+        </div>
+        <div class="icon" style="--url: url(../media/startMenu/documents.svg)">
+          Documents
+        </div>
+        <div class="icon" style="--url: url(../media/startMenu/downloads.svg)">
+          Downloads
+        </div>
+        <div class="icon" style="--url: url(../media/startMenu/settings.svg)">
+          Settings
+        </div>
+        <div class="icon" style="--url: url(../media/startMenu/power.svg)">
+          Power
+        </div>
+      </div>
+      <div class="about"></div>
+      <div class="apps"></div>
+      <div class="power"></div>
+    </menu>
     <menu class="notifs"></menu>
   </body>
   <script src="./scripts/script.js"></script>
